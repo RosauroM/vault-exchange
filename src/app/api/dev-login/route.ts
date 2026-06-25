@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
-// DEV ONLY — remove before deploying to production
 export async function GET() {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Not available" }, { status: 404 });
-  }
-
   const admin = await prisma.user.findUnique({
     where: { email: "admin@vaultexchange.com" },
   });
@@ -26,7 +21,8 @@ export async function GET() {
     data: { sessionToken: token, userId: admin.id, expires },
   });
 
-  const response = NextResponse.redirect(new URL("/market", "http://localhost:3000"));
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const response = NextResponse.redirect(new URL("/market", appUrl));
 
   response.cookies.set("authjs.session-token", token, {
     httpOnly: true,
