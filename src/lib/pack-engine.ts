@@ -55,7 +55,7 @@ export async function openPack({ packId, userId }: { packId: string; userId: str
     });
 
     const eligible = weights.filter(
-      (w) => (w.card.packPrizePool?.quantityAvailable ?? 0) >= w.sharesPerWin
+      (w) => (w.card.packPrizePool[0]?.quantityAvailable ?? 0) >= w.sharesPerWin
     );
 
     let won = false;
@@ -94,10 +94,7 @@ export async function openPack({ packId, userId }: { packId: string; userId: str
         update: { quantity: { increment: sharesAwarded } },
       });
 
-      // Ledger entries: prize_pool -> user
-      const prizePoolAccount = await tx.cashAccount.findFirstOrThrow({
-        where: { accountType: "prize_pool", userId: null },
-      });
+      // Ledger entry: prize_pool -> user
       await tx.shareLedgerEntry.create({
         data: {
           cardId: wonCardId,

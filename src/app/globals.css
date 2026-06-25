@@ -1,26 +1,81 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --navy: #0a0e1a;
+  --navy-light: #111827;
+  --navy-border: #1e2a3a;
+  --gold: #c9a84c;
+  --gold-light: #e8c76d;
+  --green: #00d4a0;
+  --red: #ff4d6a;
+  --text-primary: #e8eaf0;
+  --text-muted: #6b7a99;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--navy);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--navy); }
+::-webkit-scrollbar-thumb { background: var(--navy-border); border-radius: 2px; }
+
+.exchange-card {
+  background: var(--navy-light);
+  border: 1px solid var(--navy-border);
+  border-radius: 8px;
+}
+
+.text-up { color: var(--green); }
+.text-down { color: var(--red); }
+.text-gold { color: var(--gold); }
+.text-muted { color: var(--text-muted); }
+
+.btn-primary {
+  background: var(--gold);
+  color: #0a0e1a;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--gold-light); }
+
+.btn-buy {
+  background: var(--green);
+  color: #0a0e1a;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 6px;
+  width: 100%;
+  transition: opacity 0.15s;
+  cursor: pointer;
+}
+.btn-buy:hover { opacity: 0.9; }
+
+.btn-sell {
+  background: var(--red);
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 24px;
+  border-radius: 6px;
+  width: 100%;
+  transition: opacity 0.15s;
+  cursor: pointer;
+}
+.btn-sell:hover { opacity: 0.9; }
+
+input.exchange-input, select.exchange-input {
+  background: #0d1321;
+  border: 1px solid var(--navy-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+}
+input.exchange-input:focus, select.exchange-input:focus { border-color: var(--gold); }
