@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { PackOpener } from "@/components/exchange/PackOpener";
 
 interface Pack {
@@ -11,94 +11,166 @@ interface Pack {
   claimedToday: boolean;
 }
 
+interface TimeLeft { h: number; m: number; s: number }
+
 const RECENT_WINS = [
-  { user: "trainer_k***", card: "1999 Charizard PSA 10",       shares: 5,  color: "#c9a84c" },
-  { user: "vault_r***",   card: "Skyridge Crystal Charizard",  shares: 1,  color: "#a78bfa" },
-  { user: "ace_m***",     card: "1999 Charizard PSA 10",       shares: 5,  color: "#c9a84c" },
-  { user: "pokefan_j***", card: "Arceus Level X BGS 9.5",     shares: 2,  color: "#00d4a0" },
-  { user: "flip_s***",    card: "1999 Charizard PSA 10",       shares: 5,  color: "#c9a84c" },
-  { user: "hold_t***",    card: "Skyridge Crystal Charizard",  shares: 1,  color: "#a78bfa" },
+  { user: "trainer_k***", card: "1999 Charizard Holo",          shares: 5,  color: "#c9a84c" },
+  { user: "vault_r***",   card: "Skyridge Crystal Charizard",   shares: 1,  color: "#a78bfa" },
+  { user: "ace_m***",     card: "1999 Charizard PSA 10",        shares: 5,  color: "#c9a84c" },
+  { user: "pokefan_j***", card: "Arceus Level X BGS 9.5",      shares: 2,  color: "#00d4a0" },
+  { user: "flip_s***",    card: "Skyridge Crystal Charizard",   shares: 1,  color: "#a78bfa" },
+  { user: "hold_t***",    card: "1999 Charizard PSA 10",        shares: 5,  color: "#c9a84c" },
+  { user: "card_w***",    card: "Arceus Level X BGS 9.5",      shares: 2,  color: "#00d4a0" },
+  { user: "rare_p***",    card: "1999 Charizard Holo",          shares: 5,  color: "#c9a84c" },
 ];
 
 const PRIZE_POOL = [
-  { card: "1999 Pokémon Base Set Charizard Holo", grader: "PSA", grade: 10, rarity: "ULTRA RARE", rarityColor: "#c9a84c", sharesPerWin: 5,  available: 500 },
-  { card: "2003 Pokémon Skyridge Crystal Charizard", grader: "PSA", grade: 9, rarity: "RARE",       rarityColor: "#a78bfa", sharesPerWin: 1,  available: 200 },
-  { card: "2009 Pokémon Platinum Arceus Level X",   grader: "BGS", grade: 9.5, rarity: "UNCOMMON",   rarityColor: "#00d4a0", sharesPerWin: 2,  available: 100 },
+  { card: "1999 Pokémon Base Set Charizard Holo", grader: "PSA", grade: "10",   rarity: "ULTRA RARE", color: "#c9a84c", shares: 5, available: 500,   chance: "0.8%" },
+  { card: "2003 Pokémon Skyridge Crystal Charizard", grader: "PSA", grade: "9",  rarity: "RARE",       color: "#a78bfa", shares: 1, available: 200,   chance: "2.4%" },
+  { card: "2009 Pokémon Platinum Arceus Level X",   grader: "BGS", grade: "9.5", rarity: "UNCOMMON",   color: "#00d4a0", shares: 2, available: 100,   chance: "5.1%" },
 ];
+
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+function Countdown({ timeLeft }: { timeLeft: TimeLeft }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      {[pad(timeLeft.h), pad(timeLeft.m), pad(timeLeft.s)].map((val, i) => (
+        <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{
+            fontFamily: "monospace", fontSize: 15, fontWeight: 800,
+            color: "#e8eaf0", background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 6, padding: "3px 7px", letterSpacing: "0.05em",
+            minWidth: 30, textAlign: "center",
+          }}>{val}</span>
+          {i < 2 && <span style={{ color: "rgba(150,170,200,0.4)", fontSize: 13, fontWeight: 700 }}>:</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PackCard({ isFree, claimed }: { isFree: boolean; claimed?: boolean }) {
+  return (
+    <div style={{
+      width: 140, height: 196,
+      borderRadius: 12,
+      position: "relative",
+      overflow: "hidden",
+      background: isFree
+        ? "linear-gradient(160deg, #071410 0%, #060c0a 100%)"
+        : "linear-gradient(160deg, #18120a 0%, #1a1408 100%)",
+      border: `1px solid ${isFree ? "rgba(0,212,160,0.35)" : "rgba(201,168,76,0.35)"}`,
+      boxShadow: isFree
+        ? "0 16px 48px rgba(0,0,0,0.7), 0 0 28px rgba(0,212,160,0.08)"
+        : "0 16px 48px rgba(0,0,0,0.7), 0 0 28px rgba(201,168,76,0.1)",
+      opacity: claimed ? 0.38 : 1,
+    }}>
+      {/* Foil shimmer */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        background: "linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%)",
+        animation: claimed ? "none" : "holoShift 3s linear infinite",
+        backgroundSize: "200% 200%",
+      }} />
+      {/* Top band */}
+      <div style={{
+        height: 28,
+        background: isFree
+          ? "linear-gradient(90deg, #006644, #00d4a0, #006644)"
+          : "linear-gradient(90deg, #7a5a10, #c9a84c, #7a5a10)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: "0.2em", color: "#05080f" }}>✦ VAULT ✦</span>
+      </div>
+      {/* Body */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 128, gap: 6 }}>
+        <div style={{ fontSize: 36, filter: `drop-shadow(0 0 10px ${isFree ? "rgba(0,212,160,0.4)" : "rgba(201,168,76,0.4)"})` }}>
+          {isFree ? "🌟" : "✨"}
+        </div>
+        <div style={{ fontSize: 8, color: isFree ? "rgba(0,212,160,0.6)" : "rgba(201,168,76,0.6)", letterSpacing: "0.12em" }}>
+          {isFree ? "1 DRAW" : "10 DRAWS"}
+        </div>
+      </div>
+      {/* Tear line */}
+      <div style={{ position: "absolute", bottom: 32, left: 0, right: 0, borderTop: "1px dashed rgba(255,255,255,0.07)" }} />
+      {/* Bottom strip */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 32, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 7, letterSpacing: "0.14em", color: isFree ? "rgba(0,212,160,0.4)" : "rgba(201,168,76,0.4)" }}>
+          {isFree ? "DAILY FREE PACK" : "STANDARD PACK"}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function PacksPage() {
   const [packs, setPacks]       = useState<Pack[]>([]);
   const [selected, setSelected] = useState<Pack | null>(null);
   const [loading, setLoading]   = useState(true);
-  const [winnerIdx, setWinnerIdx] = useState(0);
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ h: 0, m: 0, s: 0 });
+  const tickerRef               = useRef<HTMLDivElement>(null);
 
   const fetchPacks = () =>
     fetch("/api/packs").then(r => r.json()).then(setPacks).finally(() => setLoading(false));
 
   useEffect(() => { fetchPacks(); }, []);
 
-  // Rotate winners ticker
+  // Countdown to midnight UTC
   useEffect(() => {
-    const t = setInterval(() => setWinnerIdx(i => (i + 1) % RECENT_WINS.length), 3200);
+    const update = () => {
+      const now  = new Date();
+      const next = new Date();
+      next.setUTCHours(24, 0, 0, 0);
+      const diff = next.getTime() - now.getTime();
+      setTimeLeft({
+        h: Math.floor(diff / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      });
+    };
+    update();
+    const t = setInterval(update, 1000);
     return () => clearInterval(t);
   }, []);
 
   const freePack  = packs.find(p => p.type === "free_daily");
   const paidPacks = packs.filter(p => p.type !== "free_daily");
-  const win       = RECENT_WINS[winnerIdx];
 
-  /* ── PACK OPENER view ── */
+  /* ─── PACK OPENER view ─── */
   if (selected) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 0, margin: "0 -24px" }}>
-        {/* Header */}
+        {/* Opener header */}
         <div style={{
-          position: "relative",
-          padding: "40px 36px 48px",
-          background: "linear-gradient(160deg, #05080f 0%, #0b1220 100%)",
+          padding: "32px 40px 36px",
+          background: "linear-gradient(160deg, #04070d 0%, #080f1e 100%)",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
-          overflow: "hidden",
+          display: "flex", alignItems: "center", gap: 16,
         }}>
-          {/* Animated background orbs */}
-          <div style={{
-            position: "absolute", top: -80, left: "30%",
-            width: 300, height: 300, borderRadius: "50%",
-            background: selected.type === "free_daily"
-              ? "radial-gradient(circle, rgba(0,212,160,0.06) 0%, transparent 70%)"
-              : "radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }} />
-
-          {/* Back link */}
           <button
             onClick={() => setSelected(null)}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               fontSize: 13, color: "rgba(150,170,200,0.45)",
-              background: "none", border: "none", cursor: "pointer",
-              marginBottom: 32, padding: 0,
-              transition: "color 0.15s",
+              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 8, cursor: "pointer", padding: "7px 14px",
+              transition: "all 0.15s", flexShrink: 0,
             }}
-            onMouseEnter={e => (e.currentTarget.style.color = "rgba(200,215,240,0.9)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "rgba(150,170,200,0.45)")}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#e8eaf0"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.14)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "rgba(150,170,200,0.45)"; (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"; }}
           >
-            ← Back to Packs
+            ← Back
           </button>
-
-          <div style={{ textAlign: "center", marginBottom: 8 }}>
-            <h1 style={{
-              fontSize: 28, fontWeight: 900, letterSpacing: "-0.02em",
-              color: "#fff", marginBottom: 6,
-            }}>
-              {selected.name}
-            </h1>
-            <div style={{ fontSize: 13, color: "rgba(150,170,200,0.45)" }}>
-              Server-sealed result · reveal animation is display only
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#e8eaf0", letterSpacing: "-0.01em" }}>{selected.name}</div>
+            <div style={{ fontSize: 12, color: "rgba(120,140,170,0.45)", marginTop: 2 }}>
+              Server-sealed · result is decided before the animation plays
             </div>
           </div>
         </div>
-
-        <div style={{ padding: "40px 36px", background: "#06090f" }}>
+        <div style={{ padding: "48px 40px 64px", background: "#06090f" }}>
           <PackOpener
             packId={selected.id}
             packName={selected.name}
@@ -112,47 +184,46 @@ export default function PacksPage() {
     );
   }
 
-  /* ── PACK SELECTION view ── */
+  /* ─── LOBBY view ─── */
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0, margin: "0 -24px" }}>
+    <div style={{ display: "flex", flexDirection: "column", margin: "0 -24px" }}>
 
       {/* ══ HERO ══ */}
       <div style={{
-        position: "relative",
-        padding: "56px 36px 60px",
-        background: "linear-gradient(160deg, #04070d 0%, #08101e 60%, #05080f 100%)",
+        position: "relative", overflow: "hidden",
+        padding: "52px 48px 56px",
+        background: "linear-gradient(160deg, #03060c 0%, #070e1c 55%, #04070d 100%)",
         borderBottom: "1px solid rgba(255,255,255,0.05)",
-        overflow: "hidden",
-        textAlign: "center",
       }}>
-        {/* Radial glow orbs */}
-        <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 500, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: -60, left: "20%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,212,160,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: -60, right: "20%", width: 200, height: 200, borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
+        {/* Atmospheric glows */}
+        <div style={{ position: "absolute", top: -120, left: "50%", transform: "translateX(-50%)", width: 700, height: 400, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(201,168,76,0.055) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -80, left: "15%", width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,212,160,0.035) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -80, right: "15%", width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.035) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-        {/* Floating card silhouettes */}
-        {["left: 8%; top: 15%", "right: 10%; top: 10%", "left: 15%; bottom: 10%", "right: 8%; bottom: 8%"].map((pos, i) => (
+        {/* Floating ghost cards */}
+        {[
+          { style: "left:4%;top:12%", rot: "-14deg", delay: "0s", dur: "6s" },
+          { style: "right:5%;top:8%", rot: "11deg",  delay: "1.2s", dur: "7s" },
+          { style: "left:12%;bottom:8%", rot: "-9deg",  delay: "0.6s", dur: "5.5s" },
+          { style: "right:11%;bottom:12%", rot: "16deg", delay: "1.8s", dur: "6.5s" },
+        ].map((c, i) => (
           <div key={i} style={{
-            position: "absolute",
-            width: 60, height: 84,
-            borderRadius: 6,
-            background: "rgba(255,255,255,0.015)",
-            border: "1px solid rgba(255,255,255,0.04)",
-            transform: `rotate(${["-12deg","10deg","-8deg","14deg"][i]})`,
-            animation: `floatCard ${5 + i}s ease-in-out ${i * 0.8}s infinite`,
+            position: "absolute", width: 52, height: 72, borderRadius: 5,
+            background: "rgba(255,255,255,0.012)", border: "1px solid rgba(255,255,255,0.035)",
+            transform: `rotate(${c.rot})`,
+            animation: `floatCard ${c.dur} ease-in-out ${c.delay} infinite`,
             pointerEvents: "none",
-            ...Object.fromEntries(pos.split("; ").map(s => s.split(": "))),
+            ...Object.fromEntries(c.style.split(";").map(s => s.trim().split(":"))) ,
           }} />
         ))}
 
-        <div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
           {/* Badge */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
+          <div style={{ marginBottom: 18 }}>
             <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: "0.15em",
-              padding: "4px 12px", borderRadius: 20,
-              background: "rgba(201,168,76,0.1)",
-              border: "1px solid rgba(201,168,76,0.25)",
+              fontSize: 10, fontWeight: 800, letterSpacing: "0.16em",
+              padding: "5px 14px", borderRadius: 20,
+              background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.22)",
               color: "#c9a84c",
             }}>
               ✦ VAULT PACKS
@@ -160,368 +231,390 @@ export default function PacksPage() {
           </div>
 
           <h1 style={{
-            fontSize: 44, fontWeight: 900, letterSpacing: "-0.03em",
-            color: "#fff",
-            lineHeight: 1.1,
-            marginBottom: 12,
-            textShadow: "0 0 60px rgba(201,168,76,0.15)",
+            fontSize: 48, fontWeight: 900, letterSpacing: "-0.03em",
+            color: "#fff", lineHeight: 1.08, marginBottom: 14,
+            textShadow: "0 0 80px rgba(201,168,76,0.12)",
           }}>
-            Open Packs.<br />
+            Open Packs.{" "}
             <span style={{
-              background: "linear-gradient(90deg, #c9a84c, #f0d070, #c9a84c)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              background: "linear-gradient(90deg, #c9a84c 0%, #f5e070 50%, #c9a84c 100%)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              backgroundClip: "text", backgroundSize: "200% auto",
+              animation: "shimmerText 4s linear infinite",
             }}>
               Win Shares.
             </span>
           </h1>
 
-          <p style={{ fontSize: 15, color: "rgba(150,170,200,0.55)", marginBottom: 28, maxWidth: 480, margin: "0 auto 28px" }}>
-            Server-authoritative draws. Every result is sealed before the reveal animation plays.
+          <p style={{ fontSize: 15, color: "rgba(150,170,200,0.5)", maxWidth: 460, margin: "0 auto" }}>
+            Server-authoritative draws. Results are sealed before the reveal animation plays.
+            Every award is backed by pre-reserved shares.
           </p>
-
-          {/* Live winner notification */}
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "10px 18px",
-            borderRadius: 40,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            fontSize: 13,
-            transition: "all 0.5s",
-          }}>
-            <span className="live-dot" style={{ width: 7, height: 7 }} />
-            <span style={{ color: "rgba(180,200,230,0.6)" }}>
-              <span style={{ fontWeight: 700, color: "#e8eaf0" }}>{win.user}</span>
-              {" "}just won{" "}
-              <span style={{ fontWeight: 700, color: win.color }}>{win.shares} shares</span>
-              {" "}of{" "}
-              <span style={{ fontWeight: 600, color: "#e0eaff" }}>{win.card}</span>
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* ══ PACK CARDS ══ */}
+      {/* ══ LIVE WINNER TICKER ══ */}
       <div style={{
-        padding: "48px 36px",
-        background: "#06090f",
+        background: "rgba(0,0,0,0.35)",
         borderBottom: "1px solid rgba(255,255,255,0.04)",
+        padding: "10px 0", overflow: "hidden", position: "relative",
       }}>
-        {loading ? (
-          <div style={{ textAlign: "center", color: "rgba(150,170,200,0.4)", fontSize: 14 }}>Loading packs…</div>
-        ) : (
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center" }}>
+        <div ref={tickerRef} style={{
+          display: "flex", gap: 0,
+          animation: "winnerTicker 28s linear infinite",
+          whiteSpace: "nowrap",
+        }}>
+          {[...RECENT_WINS, ...RECENT_WINS].map((w, i) => (
+            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "0 32px" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00d4a0", boxShadow: "0 0 6px #00d4a0", flexShrink: 0, display: "inline-block" }} />
+              <span style={{ fontSize: 12.5, color: "rgba(160,180,210,0.55)" }}>
+                <span style={{ fontWeight: 700, color: "#dde5f0" }}>{w.user}</span>
+                {" "}won{" "}
+                <span style={{ fontWeight: 700, color: w.color }}>{w.shares} share{w.shares !== 1 ? "s" : ""}</span>
+                {" "}of{" "}
+                <span style={{ fontWeight: 600, color: "rgba(210,225,245,0.75)" }}>{w.card}</span>
+              </span>
+              <span style={{ color: "rgba(255,255,255,0.08)", fontSize: 10 }}>·</span>
+            </span>
+          ))}
+        </div>
+        {/* Fade edges */}
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: "linear-gradient(90deg, #05080f 0%, transparent 6%, transparent 94%, #05080f 100%)" }} />
+      </div>
 
-            {/* Free daily pack */}
+      {/* ══ PACKS ══ */}
+      <div style={{ padding: "52px 48px 60px", background: "#06090f" }}>
+        {loading ? (
+          <div style={{ textAlign: "center", color: "rgba(150,170,200,0.35)", fontSize: 13, padding: "60px 0" }}>
+            Loading packs…
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+
+            {/* ── Free daily pack ── */}
             {freePack && (
-              <div
-                onClick={!freePack.claimedToday ? () => setSelected(freePack) : undefined}
-                style={{
-                  position: "relative",
-                  borderRadius: 20,
-                  padding: "28px 28px 32px",
-                  background: freePack.claimedToday
-                    ? "linear-gradient(160deg, #080f14 0%, #06090f 100%)"
-                    : "linear-gradient(160deg, #071410 0%, #060c0a 100%)",
-                  border: freePack.claimedToday
-                    ? "1px solid rgba(255,255,255,0.06)"
-                    : "1px solid rgba(0,212,160,0.25)",
-                  width: 300,
-                  cursor: freePack.claimedToday ? "default" : "pointer",
-                  transition: "all 0.25s",
-                  boxShadow: freePack.claimedToday ? "none" : "0 8px 40px rgba(0,0,0,0.5)",
-                  overflow: "hidden",
-                }}
-                onMouseEnter={e => {
-                  if (!freePack.claimedToday) {
-                    (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-                    (e.currentTarget as HTMLElement).style.boxShadow = "0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,160,0.2)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(0,212,160,0.5)";
-                  }
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = freePack.claimedToday ? "none" : "0 8px 40px rgba(0,0,0,0.5)";
-                  (e.currentTarget as HTMLElement).style.borderColor = freePack.claimedToday ? "rgba(255,255,255,0.06)" : "rgba(0,212,160,0.25)";
-                }}
-              >
-                {/* Glow */}
+              <div style={{
+                position: "relative", overflow: "hidden",
+                borderRadius: 20,
+                background: freePack.claimedToday
+                  ? "rgba(255,255,255,0.02)"
+                  : "linear-gradient(145deg, #071410 0%, #050d09 100%)",
+                border: freePack.claimedToday
+                  ? "1px solid rgba(255,255,255,0.05)"
+                  : "1px solid rgba(0,212,160,0.2)",
+                padding: "36px 40px",
+              }}>
                 {!freePack.claimedToday && (
-                  <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,212,160,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+                  <div style={{ position: "absolute", top: -60, right: -60, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(0,212,160,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
                 )}
 
-                {/* Badge */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 800, letterSpacing: "0.12em",
-                    padding: "4px 10px", borderRadius: 5,
-                    background: "rgba(0,212,160,0.1)",
-                    border: "1px solid rgba(0,212,160,0.2)",
-                    color: "#00d4a0",
-                  }}>
-                    FREE DAILY
-                  </span>
-                  {freePack.claimedToday && (
-                    <span style={{ fontSize: 11, color: "rgba(150,170,200,0.35)" }}>Claimed ✓</span>
-                  )}
-                </div>
-
-                {/* Pack visual centered */}
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-                  <div style={{
-                    width: 120, height: 168,
-                    borderRadius: 10,
-                    background: freePack.claimedToday
-                      ? "rgba(255,255,255,0.02)"
-                      : "linear-gradient(160deg, #0b1e14, #0a1f1a)",
-                    border: `1px solid ${freePack.claimedToday ? "rgba(255,255,255,0.05)" : "rgba(0,212,160,0.3)"}`,
-                    display: "flex", flexDirection: "column",
-                    overflow: "hidden",
-                    opacity: freePack.claimedToday ? 0.4 : 1,
-                  }}>
-                    <div style={{ height: 24, background: "linear-gradient(90deg, #006644, #00d4a0, #006644)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.18em", color: "#05080f" }}>✦ VAULT ✦</span>
-                    </div>
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 4 }}>
-                      <div style={{ fontSize: 28 }}>🌟</div>
-                      <div style={{ fontSize: 8, color: "rgba(0,212,160,0.6)", letterSpacing: "0.1em" }}>1 DRAW</div>
-                    </div>
-                    <div style={{ height: 24, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", borderTop: "1px dashed rgba(0,212,160,0.15)" }}>
-                      <span style={{ fontSize: 7, color: "rgba(0,212,160,0.35)", letterSpacing: "0.12em" }}>DAILY FREE</span>
-                    </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 40, flexWrap: "wrap" as const }}>
+                  {/* Pack visual */}
+                  <div style={{ flexShrink: 0 }}>
+                    <PackCard isFree={true} claimed={freePack.claimedToday} />
                   </div>
-                </div>
 
-                <div style={{ marginBottom: 6 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#e8eaf0", marginBottom: 4 }}>{freePack.name}</div>
-                  <div style={{ fontSize: 13, color: "rgba(150,170,200,0.45)" }}>1 server draw · resets at midnight UTC</div>
-                </div>
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, letterSpacing: "0.14em",
+                        padding: "4px 12px", borderRadius: 6,
+                        background: "rgba(0,212,160,0.1)", border: "1px solid rgba(0,212,160,0.2)",
+                        color: "#00d4a0",
+                      }}>
+                        FREE DAILY
+                      </span>
+                      {freePack.claimedToday && (
+                        <span style={{ fontSize: 11, color: "rgba(120,140,170,0.5)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, padding: "3px 10px" }}>
+                          ✓ Claimed today
+                        </span>
+                      )}
+                    </div>
 
-                <div style={{ marginTop: 20 }}>
-                  {freePack.claimedToday ? (
-                    <div style={{
-                      padding: "12px", borderRadius: 10, textAlign: "center",
-                      background: "rgba(255,255,255,0.03)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      fontSize: 13, color: "rgba(120,140,170,0.5)",
-                    }}>
-                      Returns tomorrow
-                    </div>
-                  ) : (
-                    <div style={{
-                      padding: "14px", borderRadius: 10, textAlign: "center",
-                      background: "linear-gradient(135deg, #00c897, #009e78)",
-                      fontSize: 15, fontWeight: 800, color: "#05080f",
-                      letterSpacing: "0.04em",
-                      boxShadow: "0 6px 20px rgba(0,200,151,0.3)",
-                    }}>
-                      ⚡ Claim Free Pack
-                    </div>
-                  )}
+                    <h2 style={{ fontSize: 26, fontWeight: 900, color: freePack.claimedToday ? "rgba(200,215,240,0.35)" : "#e8eaf0", letterSpacing: "-0.02em", marginBottom: 8 }}>
+                      {freePack.name}
+                    </h2>
+                    <p style={{ fontSize: 14, color: "rgba(150,170,200,0.45)", marginBottom: 20, lineHeight: 1.5 }}>
+                      One server-authoritative draw per day. Resets at midnight UTC.
+                      Results sealed before reveal.
+                    </p>
+
+                    {/* Countdown or reset note */}
+                    {freePack.claimedToday ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                        <span style={{ fontSize: 12, color: "rgba(120,140,170,0.4)", letterSpacing: "0.04em" }}>RESETS IN</span>
+                        <Countdown timeLeft={timeLeft} />
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00d4a0", boxShadow: "0 0 8px #00d4a0", flexShrink: 0, display: "inline-block" }} />
+                        <span style={{ fontSize: 13, color: "#00d4a0", fontWeight: 600 }}>Ready to claim</span>
+                        <span style={{ color: "rgba(120,140,170,0.3)", fontSize: 12 }}>·</span>
+                        <span style={{ fontSize: 12, color: "rgba(120,140,170,0.4)" }}>Expires in <Countdown timeLeft={timeLeft} /></span>
+                      </div>
+                    )}
+
+                    {freePack.claimedToday ? (
+                      <div style={{
+                        display: "inline-flex", alignItems: "center", gap: 8,
+                        padding: "13px 28px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+                        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+                        color: "rgba(120,140,170,0.45)", cursor: "not-allowed",
+                      }}>
+                        Come back tomorrow
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setSelected(freePack)}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 8,
+                          padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 800,
+                          letterSpacing: "0.03em", border: "none", cursor: "pointer",
+                          background: "linear-gradient(135deg, #00c897 0%, #009e78 100%)",
+                          color: "#04100c",
+                          boxShadow: "0 8px 28px rgba(0,200,151,0.28)",
+                          transition: "all 0.18s",
+                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 36px rgba(0,200,151,0.38)"; (e.currentTarget as HTMLElement).style.transition = "all 0.1s ease"; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 28px rgba(0,200,151,0.28)"; }}
+                      >
+                        ⚡ Claim Free Pack
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Paid packs */}
-            {paidPacks.map(pack => (
-              <div
-                key={pack.id}
-                onClick={() => setSelected(pack)}
-                style={{
-                  position: "relative",
-                  borderRadius: 20,
-                  padding: "28px 28px 32px",
-                  background: "linear-gradient(160deg, #110e05 0%, #0a0902 100%)",
-                  border: "1px solid rgba(201,168,76,0.25)",
-                  width: 300,
-                  cursor: "pointer",
-                  transition: "all 0.25s",
-                  boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
-                  overflow: "hidden",
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.15)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(201,168,76,0.55)";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 40px rgba(0,0,0,0.5)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(201,168,76,0.25)";
-                }}
-              >
-                {/* Gold glow */}
-                <div style={{ position: "absolute", top: -40, right: -40, width: 160, height: 160, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.09) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-                {/* Badge */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 800, letterSpacing: "0.12em",
-                    padding: "4px 10px", borderRadius: 5,
-                    background: "rgba(201,168,76,0.1)",
-                    border: "1px solid rgba(201,168,76,0.25)",
-                    color: "#c9a84c",
-                  }}>
-                    PREMIUM
-                  </span>
-                  <span style={{ fontSize: 18, fontWeight: 900, color: "#c9a84c", fontFamily: "monospace" }}>
-                    ${(pack.priceCents / 100).toFixed(2)}
-                  </span>
+            {/* ── Paid packs ── */}
+            {paidPacks.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(120,140,170,0.4)" }}>
+                  PREMIUM PACKS
                 </div>
+                {paidPacks.map(pack => (
+                  <div
+                    key={pack.id}
+                    onClick={() => setSelected(pack)}
+                    style={{
+                      position: "relative", overflow: "hidden",
+                      borderRadius: 20,
+                      background: "linear-gradient(145deg, #110e05 0%, #0a0902 100%)",
+                      border: "1px solid rgba(201,168,76,0.2)",
+                      padding: "36px 40px",
+                      cursor: "pointer",
+                      transition: "transform 0.13s ease, box-shadow 0.13s ease, border-color 0.13s ease",
+                      boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+                    }}
+                    onMouseEnter={e => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.transform = "translateY(-3px)";
+                      el.style.boxShadow = "0 14px 44px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,168,76,0.2)";
+                      el.style.borderColor = "rgba(201,168,76,0.45)";
+                    }}
+                    onMouseLeave={e => {
+                      const el = e.currentTarget as HTMLElement;
+                      el.style.transform = "translateY(0)";
+                      el.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)";
+                      el.style.borderColor = "rgba(201,168,76,0.2)";
+                    }}
+                  >
+                    <div style={{ position: "absolute", top: -60, right: -60, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-                {/* Pack visual */}
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-                  <div style={{
-                    width: 120, height: 168,
-                    borderRadius: 10,
-                    background: "linear-gradient(160deg, #18120a, #1a1408)",
-                    border: "1px solid rgba(201,168,76,0.3)",
-                    display: "flex", flexDirection: "column",
-                    overflow: "hidden",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.6), 0 0 20px rgba(201,168,76,0.08)",
-                  }}>
-                    <div style={{ height: 24, background: "linear-gradient(90deg, #7a5a10, #c9a84c, #7a5a10)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: "0.18em", color: "#05080f" }}>✦ VAULT ✦</span>
-                    </div>
-                    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 4 }}>
-                      <div style={{ fontSize: 28 }}>✨</div>
-                      <div style={{ fontSize: 8, color: "rgba(201,168,76,0.6)", letterSpacing: "0.1em" }}>10 DRAWS</div>
-                    </div>
-                    <div style={{ height: 24, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", borderTop: "1px dashed rgba(201,168,76,0.15)" }}>
-                      <span style={{ fontSize: 7, color: "rgba(201,168,76,0.35)", letterSpacing: "0.12em" }}>STANDARD PACK</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 40, flexWrap: "wrap" as const }}>
+                      {/* Pack visual */}
+                      <div style={{ flexShrink: 0 }}>
+                        <PackCard isFree={false} />
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 200 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 800, letterSpacing: "0.14em",
+                            padding: "4px 12px", borderRadius: 6,
+                            background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)",
+                            color: "#c9a84c",
+                          }}>
+                            PREMIUM
+                          </span>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
+                            padding: "4px 12px", borderRadius: 6,
+                            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)",
+                            color: "rgba(180,200,230,0.5)",
+                          }}>
+                            10 DRAWS
+                          </span>
+                        </div>
+
+                        <h2 style={{ fontSize: 26, fontWeight: 900, color: "#e8eaf0", letterSpacing: "-0.02em", marginBottom: 8 }}>
+                          {pack.name}
+                        </h2>
+                        <p style={{ fontSize: 14, color: "rgba(150,170,200,0.45)", marginBottom: 20, lineHeight: 1.5 }}>
+                          10 server-authoritative draws with improved odds. Results sealed before reveal.
+                          Spend from your wallet balance instantly.
+                        </p>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: "rgba(120,140,170,0.38)", letterSpacing: "0.06em", marginBottom: 4 }}>PRICE</div>
+                            <div style={{ fontSize: 24, fontWeight: 900, color: "#c9a84c", fontFamily: "monospace", letterSpacing: "-0.02em" }}>
+                              ${(pack.priceCents / 100).toFixed(2)}
+                            </div>
+                          </div>
+                          <div style={{ width: 1, height: 36, background: "rgba(255,255,255,0.06)" }} />
+                          <div>
+                            <div style={{ fontSize: 11, color: "rgba(120,140,170,0.38)", letterSpacing: "0.06em", marginBottom: 4 }}>PER DRAW</div>
+                            <div style={{ fontSize: 24, fontWeight: 900, color: "rgba(201,168,76,0.45)", fontFamily: "monospace", letterSpacing: "-0.02em" }}>
+                              ${(pack.priceCents / 100 / 10).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={e => { e.stopPropagation(); setSelected(pack); }}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 8,
+                            padding: "14px 32px", borderRadius: 12, fontSize: 15, fontWeight: 800,
+                            letterSpacing: "0.03em", border: "none", cursor: "pointer",
+                            background: "linear-gradient(135deg, #c9a84c 0%, #8a6020 100%)",
+                            color: "#05080f",
+                            boxShadow: "0 8px 28px rgba(201,168,76,0.22)",
+                            transition: "transform 0.1s ease, box-shadow 0.1s ease",
+                          }}
+                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 36px rgba(201,168,76,0.32)"; }}
+                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 28px rgba(201,168,76,0.22)"; }}
+                        >
+                          ✦ Open Pack · ${(pack.priceCents / 100).toFixed(2)}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                <div style={{ marginBottom: 6 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#e8eaf0", marginBottom: 4 }}>{pack.name}</div>
-                  <div style={{ fontSize: 13, color: "rgba(150,170,200,0.45)" }}>10 draws · improved odds · instant reveal</div>
-                </div>
-
-                <div style={{ marginTop: 20 }}>
-                  <div style={{
-                    padding: "14px", borderRadius: 10, textAlign: "center",
-                    background: "linear-gradient(135deg, #c9a84c, #8a6020)",
-                    fontSize: 15, fontWeight: 800, color: "#05080f",
-                    letterSpacing: "0.04em",
-                    boxShadow: "0 6px 20px rgba(201,168,76,0.25)",
-                  }}>
-                    Open Pack · ${(pack.priceCents / 100).toFixed(2)}
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
 
       {/* ══ PRIZE POOL TABLE ══ */}
-      <div style={{ padding: "40px 36px 56px", background: "#05080f" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{
-              fontSize: 11, fontWeight: 700, letterSpacing: "0.12em",
-              color: "rgba(150,170,200,0.35)",
-              marginBottom: 8,
-            }}>
-              PRIZE POOL
-            </div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: "#e8eaf0", letterSpacing: "-0.02em" }}>
-              What you can win
-            </h2>
+      <div style={{ padding: "48px 48px 60px", background: "#050810", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(120,140,170,0.38)", marginBottom: 8 }}>
+            PRIZE POOL
+          </div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#e8eaf0", letterSpacing: "-0.02em" }}>
+            What you can win
+          </h2>
+        </div>
+
+        <div style={{
+          background: "#080c18", border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 16, overflow: "hidden",
+        }}>
+          {/* Header */}
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 110px 90px 90px 100px",
+            padding: "11px 22px", borderBottom: "1px solid rgba(255,255,255,0.05)",
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.09em", color: "rgba(120,140,170,0.45)",
+          }}>
+            <span>CARD</span>
+            <span>RARITY</span>
+            <span style={{ textAlign: "center" }}>SHARES</span>
+            <span style={{ textAlign: "center" }}>CHANCE</span>
+            <span style={{ textAlign: "right" }}>AVAILABLE</span>
           </div>
 
-          <div style={{
-            background: "#080d18",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: 16,
-            overflow: "hidden",
-          }}>
-            {/* Table header */}
-            <div style={{
-              display: "grid", gridTemplateColumns: "1fr auto auto auto",
-              padding: "12px 20px",
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
-              fontSize: 10, fontWeight: 700, letterSpacing: "0.08em",
-              color: "rgba(120,140,170,0.5)",
-            }}>
-              <span>CARD</span>
-              <span style={{ textAlign: "center", minWidth: 90 }}>RARITY</span>
-              <span style={{ textAlign: "center", minWidth: 90 }}>WIN</span>
-              <span style={{ textAlign: "right", minWidth: 90 }}>POOL</span>
-            </div>
-
-            {PRIZE_POOL.map((row, i) => (
-              <div
-                key={row.card}
-                style={{
-                  display: "grid", gridTemplateColumns: "1fr auto auto auto",
-                  padding: "16px 20px",
-                  borderBottom: i < PRIZE_POOL.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
-                  alignItems: "center",
-                  background: i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#dde5f0", marginBottom: 3 }}>
-                    {row.card}
-                  </div>
-                  <div style={{ fontSize: 11, color: "rgba(120,140,170,0.5)" }}>
-                    {row.grader} {row.grade}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: "center", minWidth: 90 }}>
-                  <span style={{
-                    fontSize: 9, fontWeight: 800, letterSpacing: "0.1em",
-                    padding: "3px 8px", borderRadius: 4,
-                    background: `${row.rarityColor}18`,
-                    border: `1px solid ${row.rarityColor}35`,
-                    color: row.rarityColor,
-                  }}>
-                    {row.rarity}
-                  </span>
-                </div>
-
-                <div style={{ textAlign: "center", minWidth: 90 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", fontFamily: "monospace" }}>
-                    {row.sharesPerWin} share{row.sharesPerWin !== 1 ? "s" : ""}
-                  </span>
-                </div>
-
-                <div style={{ textAlign: "right", minWidth: 90 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", fontFamily: "monospace" }}>
-                    {row.available.toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: 10, color: "rgba(120,140,170,0.4)" }}>available</div>
-                </div>
+          {PRIZE_POOL.map((row, i) => (
+            <div key={row.card} style={{
+              display: "grid", gridTemplateColumns: "1fr 110px 90px 90px 100px",
+              padding: "16px 22px", alignItems: "center",
+              borderBottom: i < PRIZE_POOL.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none",
+              background: i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent",
+              transition: "background 0.12s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.025)")}
+            onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent")}
+            >
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#dde5f0", marginBottom: 3 }}>{row.card}</div>
+                <div style={{ fontSize: 11, color: "rgba(120,140,170,0.45)" }}>{row.grader} Grade {row.grade}</div>
               </div>
-            ))}
-          </div>
 
-          {/* Provable fairness note */}
-          <div style={{
-            marginTop: 16,
-            padding: "14px 18px",
-            borderRadius: 10,
-            background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.05)",
-            display: "flex", alignItems: "flex-start", gap: 10,
-            fontSize: 12,
-          }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>🔒</span>
-            <div style={{ color: "rgba(150,170,200,0.45)", lineHeight: 1.5 }}>
-              All draws are server-authoritative with a recorded <code style={{ color: "rgba(200,215,240,0.5)", fontSize: 11 }}>server_seed_hash</code>.
-              Results are sealed before the reveal animation plays.
-              Every award is backed by pre-reserved shares — the pool cannot award what it doesn't hold.
+              <div>
+                <span style={{
+                  fontSize: 9, fontWeight: 800, letterSpacing: "0.1em",
+                  padding: "3px 8px", borderRadius: 4,
+                  background: `${row.color}18`, border: `1px solid ${row.color}30`,
+                  color: row.color,
+                }}>
+                  {row.rarity}
+                </span>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", fontFamily: "monospace" }}>
+                  {row.shares}
+                </span>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: row.color, fontFamily: "monospace" }}>
+                  {row.chance}
+                </span>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e8eaf0", fontFamily: "monospace" }}>
+                  {row.available.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(120,140,170,0.38)" }}>remaining</div>
+              </div>
             </div>
+          ))}
+        </div>
+
+        {/* Provable fairness note */}
+        <div style={{
+          marginTop: 16, padding: "14px 18px", borderRadius: 10,
+          background: "rgba(255,255,255,0.018)", border: "1px solid rgba(255,255,255,0.05)",
+          display: "flex", alignItems: "flex-start", gap: 12, fontSize: 12.5,
+        }}>
+          <span style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }}>🔒</span>
+          <div style={{ color: "rgba(150,170,200,0.4)", lineHeight: 1.6 }}>
+            All draws are server-authoritative with a recorded{" "}
+            <code style={{ color: "rgba(200,215,240,0.45)", fontSize: 11, background: "rgba(255,255,255,0.05)", borderRadius: 4, padding: "1px 5px" }}>server_seed_hash</code>.
+            {" "}Results are sealed before the reveal animation plays.
+            Every award is backed by pre-reserved shares — the pool cannot award what it doesn&apos;t hold.
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes floatCard {
+          0%, 100% { transform: translateY(0px) rotate(var(--rot, 0deg)); }
+          50%       { transform: translateY(-10px) rotate(var(--rot, 0deg)); }
+        }
+        @keyframes winnerTicker {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        @keyframes shimmerText {
+          0%   { background-position: 0% center; }
+          100% { background-position: 200% center; }
+        }
+        @keyframes holoShift {
+          0%   { background-position: 0% 0%; }
+          100% { background-position: 200% 200%; }
+        }
+        @keyframes wiggle {
+          0%,100% { transform: translateX(0) rotate(-2deg); }
+          25%      { transform: translateX(-6px) rotate(2deg); }
+          75%      { transform: translateX(6px) rotate(-2deg); }
+        }
+      `}</style>
     </div>
   );
 }
