@@ -9,7 +9,7 @@ export async function GET() {
 
   if (!admin) {
     return NextResponse.json(
-      { error: "Admin user not found — run: npm run db:seed" },
+      { error: "Admin user not found" },
       { status: 404 }
     );
   }
@@ -22,13 +22,18 @@ export async function GET() {
   });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const isSecure = appUrl.startsWith("https");
   const response = NextResponse.redirect(new URL("/market", appUrl));
 
-  response.cookies.set("authjs.session-token", token, {
+  // Auth.js uses __Secure- prefix on HTTPS
+  const cookieName = isSecure ? "__Secure-authjs.session-token" : "authjs.session-token";
+
+  response.cookies.set(cookieName, token, {
     httpOnly: true,
     expires,
     path: "/",
     sameSite: "lax",
+    secure: isSecure,
   });
 
   return response;
