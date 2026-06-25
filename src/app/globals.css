@@ -1,16 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --navy: #0a0e1a;
-  --navy-light: #111827;
+  --navy: #060a14;
+  --navy-light: #0d1321;
+  --navy-card: #111827;
   --navy-border: #1e2a3a;
   --gold: #c9a84c;
   --gold-light: #e8c76d;
   --green: #00d4a0;
   --red: #ff4d6a;
+  --purple: #a78bfa;
   --text-primary: #e8eaf0;
   --text-muted: #6b7a99;
 }
+
+* { box-sizing: border-box; }
 
 body {
   background-color: var(--navy);
@@ -23,10 +27,11 @@ body {
 ::-webkit-scrollbar-track { background: var(--navy); }
 ::-webkit-scrollbar-thumb { background: var(--navy-border); border-radius: 2px; }
 
+/* ── Base components ── */
 .exchange-card {
-  background: var(--navy-light);
+  background: var(--navy-card);
   border: 1px solid var(--navy-border);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .text-up { color: var(--green); }
@@ -36,46 +41,343 @@ body {
 
 .btn-primary {
   background: var(--gold);
-  color: #0a0e1a;
-  font-weight: 600;
+  color: #060a14;
+  font-weight: 700;
   padding: 8px 20px;
-  border-radius: 6px;
-  transition: background 0.15s;
+  border-radius: 8px;
+  transition: all 0.15s;
   cursor: pointer;
+  display: inline-block;
 }
-.btn-primary:hover { background: var(--gold-light); }
+.btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
 
 .btn-buy {
   background: var(--green);
-  color: #0a0e1a;
+  color: #060a14;
   font-weight: 700;
   padding: 10px 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   width: 100%;
-  transition: opacity 0.15s;
+  transition: all 0.15s;
   cursor: pointer;
+  display: block;
+  text-align: center;
 }
-.btn-buy:hover { opacity: 0.9; }
+.btn-buy:hover { opacity: 0.9; transform: translateY(-1px); }
 
 .btn-sell {
   background: var(--red);
   color: #fff;
   font-weight: 700;
   padding: 10px 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   width: 100%;
-  transition: opacity 0.15s;
+  transition: all 0.15s;
   cursor: pointer;
+  display: block;
+  text-align: center;
 }
-.btn-sell:hover { opacity: 0.9; }
+.btn-sell:hover { opacity: 0.9; transform: translateY(-1px); }
 
 input.exchange-input, select.exchange-input {
-  background: #0d1321;
+  background: #080d18;
   border: 1px solid var(--navy-border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   padding: 8px 12px;
   width: 100%;
   outline: none;
+  transition: border-color 0.15s;
 }
 input.exchange-input:focus, select.exchange-input:focus { border-color: var(--gold); }
+
+/* ── Pack opener ── */
+.pack-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+.pack-card:hover { transform: scale(1.04); }
+
+.pack-inner {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #0d1321 0%, #1a2540 50%, #0d1321 100%);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.pack-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(201,168,76,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.pack-glow.pulse {
+  animation: glowPulse 0.8s ease-in-out infinite alternate;
+}
+
+.pack-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* Pack select cards */
+.pack-select-card {
+  background: var(--navy-card);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.pack-select-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border-radius: 12px;
+  pointer-events: none;
+}
+.free-pack {
+  border: 1px solid rgba(0,212,160,0.3);
+}
+.free-pack::before {
+  background: radial-gradient(ellipse at top left, rgba(0,212,160,0.06) 0%, transparent 60%);
+}
+.free-pack:hover {
+  border-color: rgba(0,212,160,0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,212,160,0.1);
+}
+.free-pack:hover::before { opacity: 1; }
+
+.paid-pack {
+  border: 1px solid rgba(201,168,76,0.3);
+}
+.paid-pack::before {
+  background: radial-gradient(ellipse at top left, rgba(201,168,76,0.06) 0%, transparent 60%);
+}
+.paid-pack:hover {
+  border-color: rgba(201,168,76,0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(201,168,76,0.1);
+}
+.paid-pack:hover::before { opacity: 1; }
+
+/* ── Card flip ── */
+.card-slot {
+  aspect-ratio: 2.5 / 3.5;
+  width: 100%;
+}
+
+.card-flip-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-flip-container.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-back-face {
+  background: linear-gradient(135deg, #0d1321, #1a2540);
+  border: 1px solid var(--navy-border);
+}
+
+.card-back-design {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+.card-front-face {
+  transform: rotateY(180deg);
+}
+
+.winner-card {
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 20px rgba(201,168,76,0.5), inset 0 0 20px rgba(201,168,76,0.1);
+  animation: winnerPulse 1s ease-in-out infinite alternate;
+}
+
+.loss-card {
+  background: #080d18;
+  border: 1px solid #1a2030;
+  opacity: 0.6;
+}
+
+.winner-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.holo-effect {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255,215,0,0.15) 35%,
+    rgba(255,150,100,0.15) 45%,
+    rgba(150,100,255,0.15) 55%,
+    rgba(100,200,255,0.15) 65%,
+    transparent 80%
+  );
+  background-size: 200% 200%;
+  animation: holoShift 2s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.winner-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--gold);
+  color: #060a14;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 2px 5px;
+  border-radius: 4px;
+  z-index: 2;
+  letter-spacing: 0.5px;
+}
+
+.loss-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Near miss glow */
+.near-miss-glow {
+  animation: nearMiss 0.4s ease-out;
+}
+
+/* Winner banner */
+.winner-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0,212,160,0.08);
+  border: 1px solid rgba(0,212,160,0.3);
+  border-radius: 12px;
+  padding: 16px 24px;
+  width: 100%;
+}
+
+/* ── Market card hover effect ── */
+.market-card {
+  background: var(--navy-card);
+  border: 1px solid var(--navy-border);
+  border-radius: 10px;
+  padding: 16px;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.market-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(201,168,76,0.04) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  border-radius: 10px;
+}
+.market-card:hover {
+  border-color: rgba(201,168,76,0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+.market-card:hover::after { opacity: 1; }
+
+/* ── Animations ── */
+@keyframes glowPulse {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
+@keyframes winnerPulse {
+  from { box-shadow: 0 0 20px rgba(201,168,76,0.4), inset 0 0 20px rgba(201,168,76,0.05); }
+  to   { box-shadow: 0 0 40px rgba(201,168,76,0.8), inset 0 0 30px rgba(201,168,76,0.15); }
+}
+
+@keyframes holoShift {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes nearMiss {
+  0%   { box-shadow: 0 0 0px rgba(201,168,76,0); border-color: var(--navy-border); }
+  40%  { box-shadow: 0 0 20px rgba(201,168,76,0.6); border-color: var(--gold); }
+  100% { box-shadow: 0 0 0px rgba(201,168,76,0); border-color: var(--navy-border); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  15%       { transform: rotate(-4deg) scale(1.05); }
+  30%       { transform: rotate(4deg) scale(1.05); }
+  45%       { transform: rotate(-3deg) scale(1.03); }
+  60%       { transform: rotate(3deg) scale(1.03); }
+  75%       { transform: rotate(-1deg) scale(1.01); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-wiggle { animation: wiggle 0.5s ease-in-out; }
+.animate-shake  { animation: shake 0.3s ease-in-out; }
+.animate-slide-up { animation: slideInUp 0.4s ease-out; }
+.animate-fade-in  { animation: fadeIn 0.3s ease-out; }
