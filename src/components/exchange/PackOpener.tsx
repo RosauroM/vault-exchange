@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 
 interface PullResult {
@@ -30,7 +30,7 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
   const [results, setResults] = useState<PullResult[]>([]);
   const [revealed, setRevealed] = useState<boolean[]>(Array(CARD_COUNT).fill(false));
   const [currentReveal, setCurrentReveal] = useState(-1);
-  const [showAll, setShowAll] = useState(false);
+  const [, setShowAll] = useState(false);
   const [nearMissIdx, setNearMissIdx] = useState<number | null>(null);
   const [screenShake, setScreenShake] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +137,7 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
       {phase === "idle" && (
         <div className="flex flex-col items-center gap-4">
           <div
-            className={`pack-card ${phase === "shaking" ? "animate-shake" : ""}`}
+            className="pack-card"
             style={{ width: 180, height: 252, cursor: disabled ? "not-allowed" : "pointer" }}
             onClick={!disabled ? openPack : undefined}
           >
