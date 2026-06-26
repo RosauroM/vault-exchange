@@ -44,12 +44,12 @@ export async function POST(req: Request) {
         where: { accountType: AccountType.house_treasury, userId: null },
       });
 
-      // Issue all shares to treasury
+      // Issue all shares to the admin user (acts as treasury holder)
       await tx.sharePosition.create({
-        data: { userId: treasury.userId ?? "__treasury__", cardId: card.id, quantity: sharesIssued, locked: 0 },
+        data: { userId: session.user.id, cardId: card.id, quantity: sharesIssued, locked: 0 },
       });
       await tx.shareLedgerEntry.create({
-        data: { cardId: card.id, userId: treasury.userId ?? "__treasury__", delta: sharesIssued, reason: LedgerReason.issuance },
+        data: { cardId: card.id, userId: session.user.id, delta: sharesIssued, reason: LedgerReason.issuance },
       });
 
       // Allocate prize pool shares
