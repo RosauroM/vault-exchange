@@ -100,7 +100,7 @@ async function main() {
       grader: "BGS" as const,
       grade: 9.5,
       certNumber: "11223344",
-      imageUrl: null,
+      imageUrl: "https://images.pokemontcg.io/pl3/96_hires.png",
       referencePriceCents: 12_000_00,   // $12,000
       sharesIssued: 10_000,
       treasuryShares: 6_000,

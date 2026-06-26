@@ -12,7 +12,7 @@ export default async function ExchangeLayout({ children }: { children: React.Rea
   return (
     <div className="min-h-screen flex flex-col">
       <Nav userEmail={session.user.email ?? undefined} isAdmin={user?.role === "admin"} />
-      <main className="flex-1 px-4 md:px-6 py-6 max-w-screen-xl mx-auto w-full">
+      <main className="flex-1 px-4 md:px-6 py-6 max-w-screen-xl mx-auto w-full" style={{ paddingTop: 0 }}>
         {children}
       </main>
     </div>
