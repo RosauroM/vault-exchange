@@ -11,14 +11,24 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
     take: 20,
     include: {
-      card: {
-        select: { id: true, title: true, imageUrl: true, grade: true, grader: true },
-      },
-      pack: {
-        select: { id: true, name: true, type: true },
-      },
+      pack: { select: { id: true, name: true, type: true } },
     },
   });
 
-  return NextResponse.json(pulls);
+  // cardId is a plain string on PackPull (no FK relation in schema), so join manually
+  const cardIds = [...new Set(pulls.map(p => p.cardId).filter(Boolean))] as string[];
+  const cards = cardIds.length
+    ? await prisma.card.findMany({
+        where: { id: { in: cardIds } },
+        select: { id: true, title: true, imageUrl: true, grade: true, grader: true },
+      })
+    : [];
+  const cardMap = Object.fromEntries(cards.map(c => [c.id, c]));
+
+  const enriched = pulls.map(p => ({
+    ...p,
+    card: p.cardId ? (cardMap[p.cardId] ?? null) : null,
+  }));
+
+  return NextResponse.json(enriched);
 }
