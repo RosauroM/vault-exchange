@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { LedgerReason, AccountType, Grader } from "@prisma/client";
+import { LedgerReason, Grader } from "@prisma/client";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -40,10 +40,6 @@ export async function POST(req: Request) {
         },
       });
 
-      const treasury = await tx.cashAccount.findFirstOrThrow({
-        where: { accountType: AccountType.house_treasury, userId: null },
-      });
-
       // Issue all shares to the admin user (acts as treasury holder)
       await tx.sharePosition.create({
         data: { userId: session.user.id, cardId: card.id, quantity: sharesIssued, locked: 0 },
@@ -52,25 +48,52 @@ export async function POST(req: Request) {
         data: { cardId: card.id, userId: session.user.id, delta: sharesIssued, reason: LedgerReason.issuance },
       });
 
-      // Allocate prize pool shares
+      // Allocate prize pool shares — decrement admin position to maintain invariant:
+      // sum(sharePositions) + packPrizePool.quantityAvailable = sharesIssued
       if (prizePoolShares > 0) {
+        await tx.sharePosition.update({
+          where: { userId_cardId: { userId: session.user.id, cardId: card.id } },
+          data: { quantity: { decrement: prizePoolShares } },
+        });
         await tx.packPrizePool.upsert({
           where: { cardId: card.id },
           create: { cardId: card.id, quantityAvailable: prizePoolShares },
           update: { quantityAvailable: { increment: prizePoolShares } },
         });
+
+        // Wire pack prize weights for all active packs so this card can be won
+        const activePacks = await tx.pack.findMany({ where: { isActive: true } });
+        for (const pack of activePacks) {
+          const exists = await tx.packPrizeWeight.findFirst({
+            where: { packId: pack.id, cardId: card.id },
+          });
+          if (!exists) {
+            const defaultWeight = pack.type === "free_daily" ? 0.5 : 2.0;
+            const defaultShares = pack.type === "free_daily" ? 1   : 5;
+            await tx.packPrizeWeight.create({
+              data: { packId: pack.id, cardId: card.id, sharesPerWin: defaultShares, weight: defaultWeight },
+            });
+          }
+        }
       }
 
       // Allocate to vaulters
       if (vaulterAllocations?.length) {
         for (const { userId: vaulterId, shares } of vaulterAllocations) {
+          await tx.sharePosition.update({
+            where: { userId_cardId: { userId: session.user.id, cardId: card.id } },
+            data: { quantity: { decrement: shares } },
+          });
           await tx.sharePosition.upsert({
             where: { userId_cardId: { userId: vaulterId, cardId: card.id } },
             create: { userId: vaulterId, cardId: card.id, quantity: shares, locked: 0 },
             update: { quantity: { increment: shares } },
           });
-          await tx.shareLedgerEntry.create({
-            data: { cardId: card.id, userId: vaulterId, delta: shares, reason: LedgerReason.treasury_seed, refId: card.id },
+          await tx.shareLedgerEntry.createMany({
+            data: [
+              { cardId: card.id, userId: session.user.id, delta: -shares, reason: LedgerReason.treasury_seed, refId: card.id },
+              { cardId: card.id, userId: vaulterId,        delta:  shares, reason: LedgerReason.treasury_seed, refId: card.id },
+            ],
           });
         }
       }
