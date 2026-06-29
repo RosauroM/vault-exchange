@@ -369,37 +369,82 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
                   </div>
                 </div>
               ) : (
-                /* ── NO WIN ── */
-                <div style={{ width: "100%", textAlign: "center", borderRadius: 20, background: "linear-gradient(145deg, #0c1018, #080c14)", border: "1px solid rgba(255,255,255,0.06)", padding: "32px 28px 28px", animation: "openerSlideUp 0.4s ease-out" }}>
-                  {/* Pikachu */}
-                  <div style={{ position: "relative", display: "inline-block", marginBottom: 18 }}>
+                /* ── NO WIN ── electric hype, makes you want to go again immediately */
+                <div style={{ width: "100%", textAlign: "center", borderRadius: 20, background: "radial-gradient(ellipse at 50% 90%, rgba(255,200,0,0.07) 0%, transparent 65%), linear-gradient(145deg, #0d1016, #080b12)", border: "1px solid rgba(255,200,0,0.14)", padding: "36px 28px 28px", animation: "openerSlideUp 0.4s ease-out", position: "relative", overflow: "hidden" }}>
+
+                  {/* Electric spark particles radiating from Pikachu */}
+                  {[...Array(10)].map((_, i) => {
+                    const angle = i * 36;
+                    const dur   = 1.0 + (i * 0.08) % 0.6;
+                    const del   = (i * 0.11) % 0.9;
+                    return (
+                      <div key={i} style={{ position: "absolute", top: "calc(36px + 70px)", left: "50%", width: 4, height: 4, borderRadius: "50%", background: i % 2 === 0 ? "#ffe500" : "#ffa800", pointerEvents: "none", animation: `electricSpark ${dur}s ease-out ${del}s infinite`, transform: `rotate(${angle}deg)`, transformOrigin: "0 0" }} />
+                    );
+                  })}
+
+                  {/* Pikachu — full color, electric yellow glow, energetic bounce */}
+                  <div style={{ position: "relative", display: "inline-block", marginBottom: 22 }}>
+                    <div style={{ position: "absolute", inset: -20, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(255,200,0,0.22) 0%, transparent 70%)", animation: "electricAura 1.4s ease-in-out infinite" }} />
                     <img
                       src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
                       alt="Pikachu"
-                      style={{ width: 120, height: 120, objectFit: "contain", filter: "drop-shadow(0 6px 20px rgba(0,0,0,0.6)) saturate(0.7)", animation: "tryBounce 2.4s ease-in-out infinite" }}
+                      style={{ width: 140, height: 140, objectFit: "contain", position: "relative", zIndex: 1, filter: "drop-shadow(0 0 14px rgba(255,200,0,0.95)) drop-shadow(0 0 32px rgba(255,150,0,0.55))", animation: "electricBounce 2s ease-in-out infinite" }}
                     />
-                    <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(255,77,106,0.88)", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff", boxShadow: "0 2px 8px rgba(255,77,106,0.5)" }}>✕</div>
                   </div>
 
-                  <div style={{ fontSize: 30, fontWeight: 900, color: "#e8eaf0", letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 10 }}>
-                    NOT THIS TIME!
+                  {/* Headline */}
+                  <div style={{ fontSize: 34, fontWeight: 900, color: "#fff", letterSpacing: "-0.02em", lineHeight: 1.05, marginBottom: 8, textShadow: "0 0 32px rgba(255,200,0,0.45)" }}>
+                    KEEP HUNTING!
                   </div>
-                  <div style={{ fontSize: 14, color: "rgba(160,180,220,0.55)", lineHeight: 1.8, marginBottom: 6 }}>
-                    {isFree ? "1 draw" : "10 draws"}, zero wins — the hunt continues.
+                  <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: "0.22em", color: "rgba(255,200,0,0.75)", marginBottom: 18, animation: "pulseDot 1.2s ease-in-out infinite" }}>
+                    ⚡ &nbsp; THE PRIZE POOL IS STILL WAITING &nbsp; ⚡
                   </div>
-                  <div style={{ fontSize: 13, color: "rgba(201,168,76,0.65)", fontWeight: 700, letterSpacing: "0.02em" }}>
-                    ⚡ Every pack resets the odds. Your pull is coming.
+
+                  {/* Stats strip */}
+                  <div style={{ display: "inline-flex", gap: 0, borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)", marginBottom: 18 }}>
+                    {[
+                      { label: "Draws", val: isFree ? "1" : "10" },
+                      { label: "Wins",  val: "0" },
+                      { label: "Odds",  val: isFree ? "1.5%" : "~6% / draw" },
+                    ].map((s, i) => (
+                      <div key={i} style={{ padding: "9px 18px", background: i % 2 === 0 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.015)", borderRight: i < 2 ? "1px solid rgba(255,255,255,0.06)" : "none" }}>
+                        <div style={{ fontSize: 15, fontWeight: 900, color: "#e8eaf0" }}>{s.val}</div>
+                        <div style={{ fontSize: 10, color: "rgba(130,150,190,0.5)", letterSpacing: "0.08em", marginTop: 2 }}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ fontSize: 13, color: "rgba(150,170,210,0.45)", lineHeight: 1.7 }}>
+                    Odds reset fresh every pack — your big pull doesn&apos;t care about the last one.
                   </div>
                 </div>
               )}
 
               <button
                 onClick={() => { setPhase("idle"); onDone(); }}
-                style={{ padding: "14px 48px", borderRadius: 12, fontWeight: 800, fontSize: 15, letterSpacing: "0.04em", border: "none", cursor: "pointer", background: hasWinner ? "linear-gradient(135deg, #c9a84c, #8a6020)" : isFree ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #c9a84c, #8a6020)", color: hasWinner ? "#05080f" : isFree ? "rgba(180,200,230,0.7)" : "#05080f", boxShadow: hasWinner || !isFree ? "0 8px 28px rgba(201,168,76,0.3)" : "none", transition: "all 0.13s" }}
-                onMouseEnter={e => { if (hasWinner || !isFree) { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 36px rgba(201,168,76,0.42)"; }}}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = hasWinner || !isFree ? "0 8px 28px rgba(201,168,76,0.3)" : "none"; }}
+                style={{
+                  padding: "16px 56px", borderRadius: 13, fontWeight: 900, fontSize: 16,
+                  letterSpacing: hasWinner ? "0.04em" : "0.1em",
+                  border: hasWinner ? "none" : "2px solid rgba(255,200,0,0.35)",
+                  cursor: "pointer",
+                  background: hasWinner
+                    ? "linear-gradient(135deg, #c9a84c, #8a6020)"
+                    : isFree
+                      ? "rgba(255,255,255,0.05)"
+                      : "linear-gradient(135deg, #c9a84c, #7a5418)",
+                  color: hasWinner ? "#05080f" : isFree ? "rgba(180,200,230,0.6)" : "#05080f",
+                  boxShadow: hasWinner
+                    ? "0 8px 28px rgba(201,168,76,0.32)"
+                    : !isFree
+                      ? "0 8px 28px rgba(201,168,76,0.28), 0 0 0 0 rgba(201,168,76,0.4)"
+                      : "none",
+                  animation: !hasWinner && !isFree ? "ctaPulse 1.8s ease-in-out infinite" : "none",
+                  transition: "transform 0.13s, box-shadow 0.13s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px) scale(1.02)"; (e.currentTarget as HTMLElement).style.animation = "none"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.animation = !hasWinner && !isFree ? "ctaPulse 1.8s ease-in-out infinite" : "none"; }}
               >
-                {isFree ? "Done" : hasWinner ? "🎉 Open Another Pack!" : "Try Again →"}
+                {isFree ? "Done" : hasWinner ? "🎉 Open Another Pack!" : "⚡ ONE MORE ROUND!"}
               </button>
             </div>
           )}
@@ -461,6 +506,24 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
           0%,100% { transform: translateY(0)   scale(1); }
           35%     { transform: translateY(-14px) scale(1.06); }
           55%     { transform: translateY(-8px)  scale(1.03); }
+        }
+        @keyframes electricBounce {
+          0%,100% { transform: translateY(0) scale(1); }
+          25%     { transform: translateY(-18px) scale(1.08) rotate(-2deg); }
+          45%     { transform: translateY(-10px) scale(1.04) rotate(1deg); }
+          65%     { transform: translateY(-15px) scale(1.06) rotate(-1deg); }
+        }
+        @keyframes electricAura {
+          0%,100% { opacity: 0.6; transform: scale(1); }
+          50%      { opacity: 1;   transform: scale(1.15); }
+        }
+        @keyframes electricSpark {
+          0%   { transform: rotate(var(--a, 0deg)) translateX(4px)  scale(1); opacity: 1; }
+          100% { transform: rotate(var(--a, 0deg)) translateX(72px) scale(0); opacity: 0; }
+        }
+        @keyframes ctaPulse {
+          0%,100% { box-shadow: 0 8px 28px rgba(201,168,76,0.28), 0 0 0 0   rgba(201,168,76,0.45); }
+          50%     { box-shadow: 0 8px 28px rgba(201,168,76,0.45), 0 0 0 10px rgba(201,168,76,0);   }
         }
         .near-miss-glow { box-shadow: 0 0 12px rgba(255,160,60,0.3); }
       `}</style>
