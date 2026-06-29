@@ -308,36 +308,98 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
 
           {/* Result summary */}
           {phase === "done" && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, width: "100%", maxWidth: 500, marginTop: 8 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, width: "100%", maxWidth: hasWinner ? 640 : 500, marginTop: 12 }}>
+
               {hasWinner ? (
-                <div style={{ width: "100%", padding: "22px 28px", borderRadius: 16, background: "linear-gradient(135deg, rgba(201,168,76,0.07), rgba(201,168,76,0.03))", border: "1px solid rgba(201,168,76,0.25)", display: "flex", alignItems: "center", gap: 18, animation: "openerSlideUp 0.3s ease-out" }}>
-                  <div style={{ fontSize: 36, flexShrink: 0 }}>🏆</div>
-                  <div>
-                    <div style={{ fontSize: 17, fontWeight: 900, color: "#c9a84c", marginBottom: 6 }}>You Won!</div>
+                /* ── WIN ── */
+                <div style={{ position: "relative", width: "100%", borderRadius: 20, overflow: "hidden", background: "linear-gradient(145deg, #1a1005, #0d0a02)", border: "1px solid rgba(201,168,76,0.4)", boxShadow: "0 0 60px rgba(201,168,76,0.18), 0 0 120px rgba(201,168,76,0.06)", padding: "32px 28px 28px", animation: "winBurst 0.55s cubic-bezier(0.22,1,0.36,1)" }}>
+
+                  {/* Confetti rain */}
+                  {[...Array(18)].map((_, i) => {
+                    const left = (i * 41 + 7) % 97;
+                    const dur  = 1.4 + (i * 0.11) % 1.0;
+                    const del  = (i * 0.13) % 1.2;
+                    const sz   = 4 + (i % 3) * 2;
+                    const col  = i % 4 === 0 ? "#c9a84c" : i % 4 === 1 ? "#ffe082" : i % 4 === 2 ? "#ffffff" : "#00d4a0";
+                    return (
+                      <div key={i} style={{ position: "absolute", top: -sz, left: `${left}%`, width: sz, height: sz, borderRadius: i % 2 === 0 ? "50%" : "2px", background: col, animation: `confettiFall ${dur}s ease-in ${del}s infinite`, zIndex: 0, pointerEvents: "none" }} />
+                    );
+                  })}
+
+                  {/* Win header */}
+                  <div style={{ textAlign: "center", marginBottom: 22, position: "relative", zIndex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: "0.28em", color: "#c9a84c", marginBottom: 10, animation: "pulseDot 1s ease-in-out infinite" }}>
+                      ✦ &nbsp; L E G E N D A R Y &nbsp; P U L L &nbsp; ✦
+                    </div>
+                    <div style={{ fontSize: 46, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-0.03em", animation: "goldPulse 1.6s ease-in-out infinite" }}>
+                      YOU WON!
+                    </div>
+                    <div style={{ fontSize: 32, marginTop: 2 }}>🏆</div>
+                  </div>
+
+                  {/* Won cards */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14, position: "relative", zIndex: 1 }}>
                     {winners.map((r, i) => (
-                      <div key={i} style={{ fontSize: 13, color: "rgba(220,235,210,0.8)", lineHeight: 1.5 }}>
-                        <span style={{ fontWeight: 700, color: "#e8eaf0" }}>{r.sharesAwarded} share{r.sharesAwarded !== 1 ? "s" : ""}</span>
-                        {r.card && <span style={{ color: "rgba(150,170,200,0.55)" }}> · {r.card.title}</span>}
-                        {r.evCents > 0 && <span style={{ color: "#c9a84c", marginLeft: 6, fontSize: 12 }}>~${(r.evCents / 100).toFixed(2)} est.</span>}
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 18, background: "rgba(201,168,76,0.07)", borderRadius: 14, padding: "14px 18px", border: "1px solid rgba(201,168,76,0.2)" }}>
+                        {r.card?.imageUrl && (
+                          <div style={{ flexShrink: 0, width: 80, height: 112, borderRadius: 8, overflow: "hidden", boxShadow: "0 8px 28px rgba(0,0,0,0.7), 0 0 20px rgba(201,168,76,0.3)", animation: "starSpin 0.6s cubic-bezier(0.22,1,0.36,1)" }}>
+                            <img src={r.card.imageUrl} alt={r.card.title} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                          </div>
+                        )}
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 900, color: "#e8eaf0", marginBottom: 5, lineHeight: 1.3 }}>{r.card?.title ?? "Card"}</div>
+                          {r.card && (
+                            <div style={{ fontSize: 12, color: "rgba(150,170,200,0.55)", marginBottom: 8 }}>
+                              {r.card.grader} {r.card.grade} &nbsp;·&nbsp; Grade
+                            </div>
+                          )}
+                          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: "#c9a84c", background: "rgba(201,168,76,0.12)", padding: "3px 10px", borderRadius: 20, border: "1px solid rgba(201,168,76,0.25)" }}>
+                              {r.sharesAwarded} share{r.sharesAwarded !== 1 ? "s" : ""} earned
+                            </span>
+                            {r.evCents > 0 && (
+                              <span style={{ fontSize: 12, color: "rgba(180,210,160,0.7)" }}>
+                                ~${(r.evCents / 100).toFixed(2)} est. value
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div style={{ textAlign: "center", padding: "18px 24px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", animation: "openerSlideUp 0.3s ease-out" }}>
-                  <div style={{ fontSize: 20, marginBottom: 8 }}>🎴</div>
-                  <div style={{ color: "rgba(180,200,230,0.65)", fontSize: 14, fontWeight: 600, marginBottom: 4 }}>No win this time</div>
-                  <div style={{ color: "rgba(120,140,170,0.45)", fontSize: 12 }}>Every draw is independent — odds reset completely.</div>
+                /* ── NO WIN ── */
+                <div style={{ width: "100%", textAlign: "center", borderRadius: 20, background: "linear-gradient(145deg, #0c1018, #080c14)", border: "1px solid rgba(255,255,255,0.06)", padding: "32px 28px 28px", animation: "openerSlideUp 0.4s ease-out" }}>
+                  {/* Pikachu */}
+                  <div style={{ position: "relative", display: "inline-block", marginBottom: 18 }}>
+                    <img
+                      src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png"
+                      alt="Pikachu"
+                      style={{ width: 120, height: 120, objectFit: "contain", filter: "drop-shadow(0 6px 20px rgba(0,0,0,0.6)) saturate(0.7)", animation: "tryBounce 2.4s ease-in-out infinite" }}
+                    />
+                    <div style={{ position: "absolute", top: 4, right: 4, background: "rgba(255,77,106,0.88)", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900, color: "#fff", boxShadow: "0 2px 8px rgba(255,77,106,0.5)" }}>✕</div>
+                  </div>
+
+                  <div style={{ fontSize: 30, fontWeight: 900, color: "#e8eaf0", letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: 10 }}>
+                    NOT THIS TIME!
+                  </div>
+                  <div style={{ fontSize: 14, color: "rgba(160,180,220,0.55)", lineHeight: 1.8, marginBottom: 6 }}>
+                    {isFree ? "1 draw" : "10 draws"}, zero wins — the hunt continues.
+                  </div>
+                  <div style={{ fontSize: 13, color: "rgba(201,168,76,0.65)", fontWeight: 700, letterSpacing: "0.02em" }}>
+                    ⚡ Every pack resets the odds. Your pull is coming.
+                  </div>
                 </div>
               )}
 
               <button
                 onClick={() => { setPhase("idle"); onDone(); }}
-                style={{ padding: "13px 40px", borderRadius: 11, fontWeight: 800, fontSize: 14, letterSpacing: "0.04em", border: "none", cursor: "pointer", background: isFree ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #c9a84c, #8a6020)", color: isFree ? "rgba(180,200,230,0.7)" : "#05080f", boxShadow: isFree ? "none" : "0 6px 20px rgba(201,168,76,0.22)", transition: "all 0.13s" }}
-                onMouseEnter={e => { if (!isFree) { (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 26px rgba(201,168,76,0.32)"; }}}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = isFree ? "none" : "0 6px 20px rgba(201,168,76,0.22)"; }}
+                style={{ padding: "14px 48px", borderRadius: 12, fontWeight: 800, fontSize: 15, letterSpacing: "0.04em", border: "none", cursor: "pointer", background: hasWinner ? "linear-gradient(135deg, #c9a84c, #8a6020)" : isFree ? "rgba(255,255,255,0.06)" : "linear-gradient(135deg, #c9a84c, #8a6020)", color: hasWinner ? "#05080f" : isFree ? "rgba(180,200,230,0.7)" : "#05080f", boxShadow: hasWinner || !isFree ? "0 8px 28px rgba(201,168,76,0.3)" : "none", transition: "all 0.13s" }}
+                onMouseEnter={e => { if (hasWinner || !isFree) { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 12px 36px rgba(201,168,76,0.42)"; }}}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = ""; (e.currentTarget as HTMLElement).style.boxShadow = hasWinner || !isFree ? "0 8px 28px rgba(201,168,76,0.3)" : "none"; }}
               >
-                {isFree ? "Done" : "Open Another Pack"}
+                {isFree ? "Done" : hasWinner ? "🎉 Open Another Pack!" : "Try Again →"}
               </button>
             </div>
           )}
@@ -375,6 +437,30 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
         @keyframes openerSlideUp {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes winBurst {
+          0%   { opacity: 0; transform: scale(0.85) translateY(12px); }
+          60%  { transform: scale(1.02) translateY(-2px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes goldPulse {
+          0%,100% { text-shadow: 0 0 24px rgba(201,168,76,0.5); color: #fff; }
+          50%     { text-shadow: 0 0 48px rgba(201,168,76,1), 0 0 90px rgba(201,168,76,0.35); color: #ffe082; }
+        }
+        @keyframes confettiFall {
+          0%   { transform: translateY(-10px) rotate(0deg);   opacity: 1; }
+          80%  { opacity: 0.6; }
+          100% { transform: translateY(320px) rotate(540deg); opacity: 0; }
+        }
+        @keyframes starSpin {
+          0%   { transform: rotateY(-90deg) scale(0.6); opacity: 0; }
+          60%  { transform: rotateY(10deg)  scale(1.05); }
+          100% { transform: rotateY(0deg)   scale(1);   opacity: 1; }
+        }
+        @keyframes tryBounce {
+          0%,100% { transform: translateY(0)   scale(1); }
+          35%     { transform: translateY(-14px) scale(1.06); }
+          55%     { transform: translateY(-8px)  scale(1.03); }
         }
         .near-miss-glow { box-shadow: 0 0 12px rgba(255,160,60,0.3); }
       `}</style>
