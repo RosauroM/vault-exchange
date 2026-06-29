@@ -24,6 +24,24 @@ type Phase = "idle" | "shaking" | "revealing" | "done";
 
 const CARD_COUNT = 10;
 
+const NO_WIN_POKEMON = [
+  { id: 129, name: "Magikarp",   type: "Water"  },
+  { id: 52,  name: "Meowth",    type: "Normal" },
+  { id: 54,  name: "Psyduck",   type: "Water"  },
+  { id: 39,  name: "Jigglypuff",type: "Normal" },
+  { id: 92,  name: "Gastly",    type: "Ghost"  },
+  { id: 43,  name: "Oddish",    type: "Grass"  },
+  { id: 79,  name: "Slowpoke",  type: "Water"  },
+  { id: 41,  name: "Zubat",     type: "Poison" },
+  { id: 100, name: "Voltorb",   type: "Electric"},
+  { id: 19,  name: "Rattata",   type: "Normal" },
+];
+
+const TYPE_COLOR: Record<string, string> = {
+  Water:   "#4fc3f7", Normal:  "#b0bec5", Ghost:   "#9575cd",
+  Grass:   "#66bb6a", Poison:  "#ab47bc", Electric:"#ffd54f",
+};
+
 function delay(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 function PackVisual({ isFree, shaking, large }: { isFree: boolean; shaking?: boolean; large?: boolean }) {
@@ -294,12 +312,33 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
                         )}
                         <div style={{ position: "absolute", top: 5, right: 5, zIndex: 10, background: "linear-gradient(135deg, #c9a84c, #8a6020)", color: "#03080c", fontSize: 7, fontWeight: 900, letterSpacing: "0.12em", padding: "2px 6px", borderRadius: 4 }}>WIN</div>
                       </div>
-                    ) : (
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                        <div style={{ fontSize: 13, opacity: 0.15, color: "#e8eaf0" }}>✕</div>
-                        <div style={{ fontSize: 7, color: "rgba(90,106,136,0.6)", marginTop: 3 }}>No win</div>
-                      </div>
-                    )}
+                    ) : (() => {
+                      const pkmn  = NO_WIN_POKEMON[i % NO_WIN_POKEMON.length];
+                      const tColor = TYPE_COLOR[pkmn.type] ?? "#b0bec5";
+                      return (
+                        <>
+                          {/* Type-colored top strip */}
+                          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 18, background: `linear-gradient(90deg, ${tColor}18, ${tColor}08)`, borderBottom: `1px solid ${tColor}20`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 7px", flexShrink: 0 }}>
+                            <span style={{ fontSize: 5.5, fontWeight: 900, letterSpacing: "0.12em", color: `${tColor}70` }}>{pkmn.type.toUpperCase()}</span>
+                            <span style={{ fontSize: 5.5, fontWeight: 700, color: "rgba(255,77,106,0.45)" }}>✕ NO WIN</span>
+                          </div>
+
+                          {/* Pokémon artwork — dimmed, grayscale tinted */}
+                          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 18, padding: "6px 8px 2px" }}>
+                            <img
+                              src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pkmn.id}.png`}
+                              alt={pkmn.name}
+                              style={{ width: "82%", height: "82%", objectFit: "contain", opacity: 0.45, filter: `saturate(0.25) brightness(0.75) drop-shadow(0 2px 6px rgba(0,0,0,0.5))` }}
+                            />
+                          </div>
+
+                          {/* Name footer */}
+                          <div style={{ width: "100%", padding: "5px 6px 6px", borderTop: `1px solid ${tColor}12`, background: "rgba(0,0,0,0.35)", textAlign: "center", flexShrink: 0 }}>
+                            <div style={{ fontSize: 6.5, fontWeight: 800, color: "rgba(160,180,220,0.38)", letterSpacing: "0.1em" }}>{pkmn.name.toUpperCase()}</div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               );
