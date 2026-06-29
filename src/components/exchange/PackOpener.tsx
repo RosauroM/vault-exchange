@@ -263,12 +263,13 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
                   }}
                   onClick={() => { if (phase === "done" && !isRevealed) setRevealed(prev => { const n = [...prev]; n[i] = true; return n; }); }}
                 >
-                  {/* Back face */}
-                  <div style={{ position: "absolute", inset: 0, borderRadius: 8, backfaceVisibility: "hidden", background: "linear-gradient(145deg, #0c1220, #080e1a)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, opacity: 0.35 }}>
-                      <div style={{ fontSize: 22, color: "#c9a84c" }}>✦</div>
-                      <div style={{ fontSize: 7, letterSpacing: "0.14em", color: "#c9a84c" }}>VAULT</div>
-                    </div>
+                  {/* Back face — Pokémon card back */}
+                  <div style={{ position: "absolute", inset: 0, borderRadius: 8, backfaceVisibility: "hidden", overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <img
+                      src="https://images.pokemontcg.io/back.png"
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
                   </div>
 
                   {/* Front face — pre-rotated 180deg so it's hidden by default, visible when container flips */}
