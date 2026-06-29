@@ -64,7 +64,8 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
   const [currentReveal, setCurrentReveal] = useState(-1);
   const [screenFlash, setScreenFlash]   = useState(false);
   const [error, setError]               = useState<string | null>(null);
-  const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isOpeningRef = useRef(false);
 
   const isFree   = packType === "free_daily";
   const disabled = isFree && claimedToday;
@@ -76,7 +77,8 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
   };
 
   const openPack = async () => {
-    if (phase !== "idle") return;
+    if (phase !== "idle" || isOpeningRef.current) return;
+    isOpeningRef.current = true;
     setError(null);
     setPhase("shaking");
     setResults([]);
@@ -115,13 +117,15 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error");
       setPhase("idle");
+    } finally {
+      isOpeningRef.current = false;
     }
   };
 
   const startReveal = (padded: PullResult[]) => {
     let idx = 0;
     const next = () => {
-      if (idx >= CARD_COUNT) { setPhase("done"); return; }
+      if (idx >= CARD_COUNT) { setRevealed(Array(CARD_COUNT).fill(true)); setPhase("done"); return; }
       const isWinner = padded[idx]?.won;
       setCurrentReveal(idx);
       setRevealed(prev => { const n = [...prev]; n[idx] = true; return n; });
@@ -244,43 +248,57 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
               const isWinner   = result?.won;
               const isCurrent  = currentReveal === i && phase === "revealing";
 
+              const scaleStr = isCurrent ? "scale(1.1)" : (isWinner && isRevealed) ? "scale(1.04)" : "scale(1)";
+              const flipStr  = isRevealed ? "rotateY(180deg)" : "rotateY(0deg)";
+
               return (
-                <div key={i} style={{ transform: isCurrent ? "scale(1.1)" : isWinner && isRevealed ? "scale(1.04)" : "scale(1)", transition: "transform 0.15s ease", zIndex: isCurrent ? 10 : isWinner && isRevealed ? 5 : 1, cursor: phase === "done" && !isRevealed ? "pointer" : "default" }}
+                <div key={i}
+                  style={{
+                    position: "relative", width: "100%", aspectRatio: "5/7", borderRadius: 8,
+                    transformStyle: "preserve-3d",
+                    transform: `${scaleStr} ${flipStr}`,
+                    transition: "transform 0.28s ease",
+                    zIndex: isCurrent ? 10 : isWinner && isRevealed ? 5 : 1,
+                    cursor: phase === "done" && !isRevealed ? "pointer" : "default",
+                  }}
                   onClick={() => { if (phase === "done" && !isRevealed) setRevealed(prev => { const n = [...prev]; n[i] = true; return n; }); }}
                 >
-                  <div className={`card-flip-container${isRevealed ? " flipped" : ""}`}
-                    style={{ "--flip-duration": "0.28s" } as React.CSSProperties}
-                  >
-                    {/* Back */}
-                    <div className="card-face card-back-face" style={{ background: "linear-gradient(145deg, #0c1220, #080e1a)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, opacity: 0.35 }}>
-                        <div style={{ fontSize: 22, color: "#c9a84c" }}>✦</div>
-                        <div style={{ fontSize: 7, letterSpacing: "0.14em", color: "#c9a84c" }}>VAULT</div>
-                      </div>
+                  {/* Back face */}
+                  <div style={{ position: "absolute", inset: 0, borderRadius: 8, backfaceVisibility: "hidden", background: "linear-gradient(145deg, #0c1220, #080e1a)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, opacity: 0.35 }}>
+                      <div style={{ fontSize: 22, color: "#c9a84c" }}>✦</div>
+                      <div style={{ fontSize: 7, letterSpacing: "0.14em", color: "#c9a84c" }}>VAULT</div>
                     </div>
+                  </div>
 
-                    {/* Front */}
-                    <div className={`card-face card-front-face${isWinner ? " winner-card" : " loss-card"}`}>
-                      {isWinner && result?.card ? (
-                        <div className="winner-content">
-                          <div className="holo-effect" />
-                          {result.card.imageUrl ? (
-                            <img src={result.card.imageUrl} alt={result.card.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", padding: 6, boxSizing: "border-box", zIndex: 0 }} />
-                          ) : (
-                            <div style={{ textAlign: "center", padding: 8, zIndex: 2 }}>
-                              <div style={{ fontSize: 20 }}>⭐</div>
-                              <div style={{ fontSize: 8, color: "#c9a84c", fontWeight: 700, marginTop: 4 }}>{result.card.title?.slice(0, 22)}</div>
-                            </div>
-                          )}
-                          <div className="winner-badge">WIN</div>
-                        </div>
-                      ) : (
-                        <div className="loss-content">
-                          <div style={{ fontSize: 13, opacity: 0.15, color: "#e8eaf0" }}>✕</div>
-                          <div style={{ fontSize: 7, color: "rgba(90,106,136,0.6)", marginTop: 3 }}>No win</div>
-                        </div>
-                      )}
-                    </div>
+                  {/* Front face — pre-rotated 180deg so it's hidden by default, visible when container flips */}
+                  <div style={{
+                    position: "absolute", inset: 0, borderRadius: 8, backfaceVisibility: "hidden",
+                    transform: "rotateY(180deg)",
+                    background: isWinner ? "linear-gradient(145deg, #1a1208, #120e05)" : "linear-gradient(145deg, #090d16, #060910)",
+                    border: isWinner ? "1px solid rgba(201,168,76,0.5)" : "1px solid rgba(255,255,255,0.06)",
+                    boxShadow: isWinner ? "0 0 18px rgba(201,168,76,0.2), inset 0 0 18px rgba(201,168,76,0.06)" : "none",
+                    display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+                  }}>
+                    {isWinner && result?.card ? (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", background: "linear-gradient(135deg, transparent 30%, rgba(201,168,76,0.08) 50%, transparent 70%)", animation: "holoShift 2s linear infinite", backgroundSize: "200% 200%" }} />
+                        {result.card.imageUrl ? (
+                          <img src={result.card.imageUrl} alt={result.card.title} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", padding: 6, boxSizing: "border-box", zIndex: 0 }} />
+                        ) : (
+                          <div style={{ textAlign: "center", padding: 8, zIndex: 2 }}>
+                            <div style={{ fontSize: 20 }}>⭐</div>
+                            <div style={{ fontSize: 8, color: "#c9a84c", fontWeight: 700, marginTop: 4 }}>{result.card.title?.slice(0, 22)}</div>
+                          </div>
+                        )}
+                        <div style={{ position: "absolute", top: 5, right: 5, zIndex: 10, background: "linear-gradient(135deg, #c9a84c, #8a6020)", color: "#03080c", fontSize: 7, fontWeight: 900, letterSpacing: "0.12em", padding: "2px 6px", borderRadius: 4 }}>WIN</div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ fontSize: 13, opacity: 0.15, color: "#e8eaf0" }}>✕</div>
+                        <div style={{ fontSize: 7, color: "rgba(90,106,136,0.6)", marginTop: 3 }}>No win</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -356,56 +374,6 @@ export function PackOpener({ packId, packName, packType, priceCents, claimedToda
         @keyframes openerSlideUp {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: translateY(0); }
-        }
-        .card-flip-container {
-          position: relative;
-          width: 100%;
-          aspect-ratio: 5/7;
-          transform-style: preserve-3d;
-          transition: transform var(--flip-duration, 0.28s) ease;
-          border-radius: 8px;
-        }
-        .card-flip-container.flipped { transform: rotateY(180deg); }
-        .card-face {
-          position: absolute; inset: 0;
-          border-radius: 8px;
-          backface-visibility: hidden;
-          display: flex; align-items: center; justify-content: center;
-          overflow: hidden;
-        }
-        .card-back-face {
-          background: linear-gradient(145deg, #0c1220, #080e1a);
-          border: 1px solid rgba(255,255,255,0.07);
-        }
-        .card-front-face { transform: rotateY(180deg); }
-        .winner-card {
-          background: linear-gradient(145deg, #1a1208, #120e05);
-          border: 1px solid rgba(201,168,76,0.5);
-          box-shadow: 0 0 18px rgba(201,168,76,0.2), inset 0 0 18px rgba(201,168,76,0.06);
-        }
-        .loss-card {
-          background: linear-gradient(145deg, #090d16, #060910);
-          border: 1px solid rgba(255,255,255,0.06);
-        }
-        .winner-content {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .holo-effect {
-          position: absolute; inset: 0; z-index: 1; pointer-events: none;
-          background: linear-gradient(135deg, transparent 30%, rgba(201,168,76,0.08) 50%, transparent 70%);
-          animation: holoShift 2s linear infinite;
-          background-size: 200% 200%;
-        }
-        .winner-badge {
-          position: absolute; top: 5px; right: 5px; z-index: 10;
-          background: linear-gradient(135deg, #c9a84c, #8a6020);
-          color: #03080c; font-size: 7px; font-weight: 900;
-          letter-spacing: 0.12em; padding: 2px 6px; border-radius: 4px;
-        }
-        .loss-content {
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
         }
         .near-miss-glow { box-shadow: 0 0 12px rgba(255,160,60,0.3); }
       `}</style>
